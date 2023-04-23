@@ -1,0 +1,8 @@
+                                           🟢 yarn hardhat run <task_name>
+⭐yarn hardhat getTokenUri --tokenid <Token ID> --network localhost 👉 yarn hardhat getTokenUri --tokenid 0 --network localhost
+⭐yarn hardhat mint --tokenuri <Token URI> --network localhost   👉  yarn hardhat mint --tokenuri first --network localhost
+
+🟢yarn hardhat run scripts/deploy.js --network localhost
+🟢yarn hardhat clean
+🟢yarn hardhat compile
+🟢yarn hardhat node
