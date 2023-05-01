@@ -1,8 +1,20 @@
                                            🟢 yarn hardhat run <task_name>
-⭐yarn hardhat getTokenUri --tokenid <Token ID> --network localhost 👉 yarn hardhat getTokenUri --tokenid 0 --network localhost
-⭐yarn hardhat mint --tokenuri <Token URI> --network localhost   👉  yarn hardhat mint --tokenuri first --network localhost
-
+⭐yarn hardhat mint --tokenuri <Token URI> --securitydeposit <amount> --rentamount <amount> --network localhost   
+    👉  yarn hardhat mint --tokenuri first --securitydeposit 3 --rentamount 2
+⭐yarn hardhat getTokenUri --tokenid <Token ID> --network localhost 
+    👉 yarn hardhat getTokenUri --tokenid 0 --network localhost
+⭐ yarn hardhat tenentOf --tokenid <Token ID>
+    👉yarn hardhat tenentOf --tokenid 0
+⭐yarn hardhat payRent --tokenid <Token ID>
+    👉yarn hardhat payRent --tokenid 0
+⭐yarn hardhat endRent --tokenid <Token ID> --owner <Owner Address>
+    👉yarn hardhat endRent --tokenid 0 --owner 0x70997970C51812dc3A010C7d01b50e0d17dc79C8
 🟢yarn hardhat run scripts/deploy.js --network localhost
 🟢yarn hardhat clean
 🟢yarn hardhat compile
 🟢yarn hardhat node
+
+HARDHAT CONSOLE
+await ethers.getSigners()
+await ethers.provider.getBalance("0x70997970C51812dc3A010C7d01b50e0d17dc79C8")
+await ethers.provider.getBalance("0x5FbDB2315678afecb367f032d93F642f64180aa3") //get contract balance
