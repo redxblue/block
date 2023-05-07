@@ -14,6 +14,11 @@ contract PropertyNft is ERC721URIStorage, Ownable {
         uint256 securityDeposit; //is the value getting stored as gwei here??
         uint256 rentAmount; //testing rquired👆
         }
+    struct tenentInfo{
+        uint256[] rentedProperties;
+    }
+    uint256[] public tokenID;
+    mapping(address=>tenentInfo) propertiesRentedBy;
     mapping(uint256=>address)public tenentOf;
    // property public propInfo;
     mapping(uint256=>property) public propertyInfo; 
@@ -43,8 +48,12 @@ contract PropertyNft is ERC721URIStorage, Ownable {
 		(bool success1, ) = propertyOwner.call{value: (amount- propertyInfo[_tokenId].securityDeposit)}(''); //sending rent amount to property owner
 		require(success1, 'Transaction failed1');
         tenentOf[_tokenId]=msg.sender;
+        propertiesRentedBy[msg.sender].rentedProperties.push(_tokenId);
 		//emit RentEvent(amount);
 	}
+    function getPropertiesRentedBy(address _tenent)public view returns(uint256[] memory){
+        return propertiesRentedBy[_tenent].rentedProperties;
+    }
     function payRent(uint256 _tokenId)external payable{
         require(msg.sender==tenentOf[_tokenId],"");
         uint256 amount = msg.value;
