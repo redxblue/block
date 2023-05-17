@@ -14,10 +14,13 @@ contract PropertyNft is ERC721URIStorage, Ownable {
         uint256 securityDeposit; //is the value getting stored as gwei here??
         uint256 rentAmount; //testing rquired👆
         }
+    struct ownerInfo{
+        uint256[] ownedProperties;
+    }
     struct tenentInfo{
         uint256[] rentedProperties;
     }
-    uint256[] public tokenID;
+    mapping(address=>ownerInfo) propertiesOwnedBy;
     mapping(address=>tenentInfo) propertiesRentedBy;
     mapping(uint256=>address)public tenentOf;
    // property public propInfo;
@@ -35,9 +38,11 @@ contract PropertyNft is ERC721URIStorage, Ownable {
             propertyInfo[_tokenId].rentAmount=_rentAmount*10**18; //representing as eth in wei 1eth= 10^18 wei 
             _mint(_to, _tokenId);
             _setTokenURI(_tokenId, _uri);
+            propertiesOwnedBy[_to].ownedProperties.push(_tokenId);
             return _tokenId; 
     }
     function rent(uint256 _tokenId) external payable {
+        require(tenentOf[_tokenId]==address(0),"Property has already been rented");
         address payable propertyOwner = payable(ownerOf(_tokenId));
 		uint256 amount = msg.value; // get the amount of ether in the contract
         uint256 requiredAmount=propertyInfo[_tokenId].securityDeposit + propertyInfo[_tokenId].rentAmount; //gwei is converted to wei here i guess
@@ -51,6 +56,9 @@ contract PropertyNft is ERC721URIStorage, Ownable {
         propertiesRentedBy[msg.sender].rentedProperties.push(_tokenId);
 		//emit RentEvent(amount);
 	}
+    function getPropertiesOwnedBy(address _owner)public view returns(uint256[] memory){
+        return propertiesOwnedBy[_owner].ownedProperties;
+    }
     function getPropertiesRentedBy(address _tenent)public view returns(uint256[] memory){
         return propertiesRentedBy[_tenent].rentedProperties;
     }
@@ -69,8 +77,23 @@ contract PropertyNft is ERC721URIStorage, Ownable {
     }
     function endRent(uint256 _tokenId)external{
         require(msg.sender== ownerOf(_tokenId),"function only callable by owner of this property");
-        payable(tenentOf[_tokenId]).transfer(propertyInfo[_tokenId].securityDeposit);
+        address tenentaddr=tenentOf[_tokenId];
+        payable (tenentaddr).transfer(propertyInfo[_tokenId].securityDeposit);
         tenentOf[_tokenId]=address(0);
+       uint256 arrayLength= propertiesRentedBy[tenentaddr].rentedProperties.length;//lower gas fees
+        for(uint i=0;i<arrayLength;i++){
+            if(arrayLength==1){
+                propertiesRentedBy[tenentaddr].rentedProperties.pop();
+            }
+            else if(propertiesRentedBy[tenentaddr].rentedProperties[i]==_tokenId){
+                for(uint j=i;j<(arrayLength-1);j++){
+                    propertiesRentedBy[tenentaddr].rentedProperties[j]=propertiesRentedBy[tenentaddr].rentedProperties[j+1];
+                }
+                propertiesRentedBy[tenentaddr].rentedProperties.pop();
+                arrayLength--; //lower gas fees
+            }
+        }          
+        ////needs to delete from the PropertiesRentedBy array else multiple rows will appear
     }
     receive() external payable {} // Function to receive Ether. msg.data must be empty
     fallback() external payable {}// Fallback function is called when msg.data is not empty
