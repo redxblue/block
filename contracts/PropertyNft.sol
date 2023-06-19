@@ -13,6 +13,7 @@ contract PropertyNft is ERC721URIStorage, Ownable {
     struct property{
         uint256 securityDeposit; //is the value getting stored as gwei here??
         uint256 rentAmount; //testing rquired👆
+        uint256 latestTransactionTime;
         }
     struct ownerInfo{
         uint256[] ownedProperties;
@@ -30,12 +31,12 @@ contract PropertyNft is ERC721URIStorage, Ownable {
         // Start token ID at 1. By default is starts at 0.
         // _tokenIdCounter.increment();
     }
-    function mint(address _to, string calldata _uri,uint256 _securityDeposit,
+    function mint(address _to, string calldata _uri,uint256 _securityDeposit,  //in wei
     uint256 _rentAmount) external returns (uint256)  {
             uint256 _tokenId=_tokenIdCounter.current();
             _tokenIdCounter.increment();
-            propertyInfo[_tokenId].securityDeposit=_securityDeposit*10**18;
-            propertyInfo[_tokenId].rentAmount=_rentAmount*10**18; //representing as eth in wei 1eth= 10^18 wei 
+            propertyInfo[_tokenId].securityDeposit=_securityDeposit;
+            propertyInfo[_tokenId].rentAmount=_rentAmount;  
             _mint(_to, _tokenId);
             _setTokenURI(_tokenId, _uri);
             propertiesOwnedBy[_to].ownedProperties.push(_tokenId);
@@ -43,7 +44,7 @@ contract PropertyNft is ERC721URIStorage, Ownable {
     }
     function rent(uint256 _tokenId) external payable {
         require(tenentOf[_tokenId]==address(0),"Property has already been rented");
-        address payable propertyOwner = payable(ownerOf(_tokenId));
+        address payable propertyOwner = payable(ownerOf(_tokenId)); //property owner can rent his own property->"a way to remove the property from listing"
 		uint256 amount = msg.value; // get the amount of ether in the contract
         uint256 requiredAmount=propertyInfo[_tokenId].securityDeposit + propertyInfo[_tokenId].rentAmount; //gwei is converted to wei here i guess
 		require(amount >= requiredAmount, 'Sent an amount equal to the Security deposit and Rent');
@@ -54,6 +55,7 @@ contract PropertyNft is ERC721URIStorage, Ownable {
 		require(success1, 'Transaction failed1');
         tenentOf[_tokenId]=msg.sender;
         propertiesRentedBy[msg.sender].rentedProperties.push(_tokenId);
+        propertyInfo[_tokenId].latestTransactionTime=block.timestamp; //update transaction time to restrict next payment for the next 30 days
 		//emit RentEvent(amount);
 	}
     function getPropertiesOwnedBy(address _owner)public view returns(uint256[] memory){
@@ -63,11 +65,14 @@ contract PropertyNft is ERC721URIStorage, Ownable {
         return propertiesRentedBy[_tenent].rentedProperties;
     }
     function payRent(uint256 _tokenId)external payable{
+        uint256 latestTransactionTime=propertyInfo[_tokenId].latestTransactionTime;
+        require(block.timestamp>=latestTransactionTime+60/*1 minute for demo purpose*/,"Payment Date not due yet");
         require(msg.sender==tenentOf[_tokenId],"");
         uint256 amount = msg.value;
         require(amount >=propertyInfo[_tokenId].rentAmount,"Not enough money sent");
         (bool success, ) = ownerOf(_tokenId).call{value: amount}('');
         require(success, 'Transaction failed');
+        propertyInfo[_tokenId].latestTransactionTime=block.timestamp; //updates transaction time
     }
     function getBalance() public view returns (uint) {
         return address(this).balance;
@@ -80,6 +85,7 @@ contract PropertyNft is ERC721URIStorage, Ownable {
         address tenentaddr=tenentOf[_tokenId];
         payable (tenentaddr).transfer(propertyInfo[_tokenId].securityDeposit);
         tenentOf[_tokenId]=address(0);
+        propertyInfo[_tokenId].latestTransactionTime=0; //resetting latest transaction time
        uint256 arrayLength= propertiesRentedBy[tenentaddr].rentedProperties.length;//lower gas fees
         for(uint i=0;i<arrayLength;i++){
             if(arrayLength==1){
@@ -87,7 +93,7 @@ contract PropertyNft is ERC721URIStorage, Ownable {
             }
             else if(propertiesRentedBy[tenentaddr].rentedProperties[i]==_tokenId){
                 for(uint j=i;j<(arrayLength-1);j++){
-                    propertiesRentedBy[tenentaddr].rentedProperties[j]=propertiesRentedBy[tenentaddr].rentedProperties[j+1];
+                    propertiesRentedBy[tenentaddr].rentedProperties[j]=propertiesRentedBy[tenentaddr].rentedProperties[j+1]; //updating order of tokenid array
                 }
                 propertiesRentedBy[tenentaddr].rentedProperties.pop();
                 arrayLength--; //lower gas fees
